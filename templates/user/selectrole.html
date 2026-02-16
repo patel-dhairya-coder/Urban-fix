@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Portal | Select Role</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 h-screen flex flex-col items-center justify-center font-sans">
+
+    <div class="w-full max-w-4xl p-6">
+        
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-gray-800 tracking-tight">System Portal</h1>
+            <p class="text-gray-500 mt-2">Please identify yourself to proceed</p>
+        </div>
+
+        <div id="role-selection" class="grid grid-cols-1 md:grid-cols-2 gap-8 fade-in">
+            
+            <div onclick="selectRole('admin')" class="group bg-white p-8 rounded-2xl shadow-md hover:shadow-xl border border-transparent hover:border-indigo-500 cursor-pointer transition-all duration-300 transform hover:-translate-y-1">
+                <div class="flex flex-col items-center text-center">
+                    <div class="h-16 w-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-800">Administrator</h2>
+                    <p class="text-gray-500 text-sm mt-2">Manage users, oversee system operations, and view reports.</p>
+                    <span class="mt-6 text-indigo-600 font-semibold text-sm group-hover:underline">Login as Admin &rarr;</span>
+                </div>
+            </div>
+
+            <div onclick="selectRole('contractor')" class="group bg-white p-8 rounded-2xl shadow-md hover:shadow-xl border border-transparent hover:border-orange-500 cursor-pointer transition-all duration-300 transform hover:-translate-y-1">
+                <div class="flex flex-col items-center text-center">
+                    <div class="h-16 w-16 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mb-4 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-800">Contractor</h2>
+                    <p class="text-gray-500 text-sm mt-2">View assigned tasks, update status, and submit completion reports.</p>
+                    <span class="mt-6 text-orange-600 font-semibold text-sm group-hover:underline">Login as Contractor &rarr;</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="login-form-container" class="hidden max-w-md mx-auto fade-in">
+            <div class="bg-white rounded-2xl shadow-xl p-8 relative">
+                                    {% if messages %}
+    <div class="fixed top-5 left-1/2 transform -translate-x-1/2 w-full max-w-md z-50">
+        {% for message in messages %}
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative shadow-lg mb-2" role="alert">
+            <span class="block sm:inline">{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+                <button onclick="goBack()" class="absolute top-4 left-4 text-gray-400 hover:text-gray-600 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                </button>
+
+                <div class="text-center mb-6">
+                    <h2 id="form-title" class="text-2xl font-bold text-gray-800">Admin Login</h2>
+                    <p class="text-sm text-gray-500">Welcome back! Please enter your details.</p>
+                </div>
+
+                <form id="actual-form" method="POST" action="">
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label id="identity-label" for="identity-input" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                        <input type="text" id="identity-input" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="Enter credentials" required>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="password" name="password" id="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="••••••••" required>
+                    </div>
+
+                    <button type="submit" id="submit-btn" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-300 transition-all">
+                        Sign In
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const selectionScreen = document.getElementById('role-selection');
+        const loginContainer = document.getElementById('login-form-container');
+        const formTitle = document.getElementById('form-title');
+        const submitBtn = document.getElementById('submit-btn');
+        const actualForm = document.getElementById('actual-form');
+        
+        const identityInput = document.getElementById('identity-input');
+        const identityLabel = document.getElementById('identity-label');
+
+        // Retrieve Django URLs from template tags
+        const adminUrl = "{% url 'admin_login' %}";
+        const contractorUrl = "{% url 'contractor_login' %}";
+
+        function selectRole(role) {
+            // Toggle visibility
+            selectionScreen.classList.add('hidden');
+            loginContainer.classList.remove('hidden');
+
+            if (role === 'admin') {
+                // UI Changes
+                formTitle.innerText = "Admin Login";
+                submitBtn.classList.remove('bg-orange-600', 'hover:bg-orange-700', 'focus:ring-orange-300');
+                submitBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700', 'focus:ring-indigo-300');
+                
+                // Form Configuration for Admin
+                actualForm.action = adminUrl;        // Send to Admin View
+                identityLabel.innerText = "Username"; // Admins usually use Username
+                identityInput.name = "username";      // Set name="username"
+                identityInput.placeholder = "Enter Admin Username";
+
+            } else {
+                // UI Changes
+                formTitle.innerText = "Contractor Login";
+                submitBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700', 'focus:ring-indigo-300');
+                submitBtn.classList.add('bg-orange-600', 'hover:bg-orange-700', 'focus:ring-orange-300');
+
+                // Form Configuration for Contractor
+                actualForm.action = contractorUrl;   // Send to Contractor View
+                identityLabel.innerText = "Email Address";
+                identityInput.name = "email";        // Set name="email"
+                identityInput.placeholder = "contractor@example.com";
+            }
+        }
+
+        function goBack() {
+            // Reset form
+            actualForm.reset();
+            // Toggle visibility back to selection
+            loginContainer.classList.add('hidden');
+            selectionScreen.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

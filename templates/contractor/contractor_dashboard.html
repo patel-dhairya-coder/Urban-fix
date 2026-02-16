@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Contractor Dashboard{% endblock %}
+{% block page_heading %}Contractor Dashboard{% endblock %}
+
+{% block extra_head %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="card-grid">
+        <div class="card">
+            <h3>Total Assigned</h3>
+            <p class="count">{{ total_assigned }}</p>
+        </div>
+        <div class="card">
+            <h3>Pending Action</h3>
+            <p class="count">{{ pending }}</p>
+        </div>
+        <div class="card">
+            <h3>In Progress</h3>
+            <p class="count">{{ in_progress }}</p>
+        </div>
+        <div class="card">
+            <h3>Resolved</h3>
+            <p class="count">{{ resolved }}</p>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <h3>Task Status Overview</h3>
+        <canvas id="taskStatusChart"></canvas>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const ctx = document.getElementById('taskStatusChart').getContext('2d');
+    const taskStatusChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: {{ chart_labels|safe }},
+            datasets: [{
+                data: {{ chart_data|safe }},
+                backgroundColor: [
+                    'rgba(255, 159, 64, 0.8)', // Assigned (Orange)
+                    'rgba(54, 162, 235, 0.8)', // In Progress (Blue)
+                    'rgba(75, 192, 192, 0.8)'  // Resolved (Green)
+                ],
+                borderColor: [
+                    'rgba(255, 159, 64, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(75, 192, 192, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'My Complaints by Status'
+                }
+            }
+        },
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanFix - Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #0f172a;
+            --accent: #f59e0b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --light: #f8fafc;
+            --dark: #1e293b;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+            color: var(--dark);
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .sidebar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            width: 280px;
+        }
+        
+        .main-content {
+            margin-left: 280px;
+            padding: 20px;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* Adjusted styles for collapsed state */
+        .collapsed .main-content {
+            margin-left: 80px;
+            padding-bottom: 80px; /* Added padding to bottom */
+        }
+        
+        .collapsed .sidebar {
+            width: 80px;
+        }
+        
+        .collapsed .sidebar-content {
+            display: none;
+        }
+        
+        .collapsed .nav-item {
+            justify-content: center; /* Center icons */
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        .collapsed .nav-item.active {
+            border-left: none; /* Removed active border */
+        }
+
+        .collapsed .profile-info {
+            display: none;
+        }
+
+        .collapsed .profile-img {
+            width: 48px; /* Slightly larger image for collapsed state */
+            height: 48px;
+            margin: auto;
+        }
+
+        .collapsed .logout-link .logout-text {
+            display: none;
+        }
+
+        .collapsed .logout-link i {
+            margin-right: 0;
+        }
+
+        /* --- */
+        
+        .nav-item {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+        }
+        
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.2);
+            border-left: 4px solid white;
+        }
+        
+        .stat-card {
+            transition: all 0.3s ease;
+            border-radius: 12px;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .complaint-card {
+            transition: all 0.3s ease;
+            border-radius: 12px;
+        }
+        
+        .complaint-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-pending { background-color: #fef3c7; color: #92400e; }
+        .status-in-progress { background-color: #dbeafe; color: #1e40af; }
+        .status-resolved { background-color: #dcfce7; color: #166534; }
+        .status-rejected { background-color: #fee2e2; color: #991b1b; }
+        
+        .priority-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .priority-low { background-color: #dcfce7; color: #166534; }
+        .priority-medium { background-color: #fef3c7; color: #92400e; }
+        .priority-high { background-color: #fee2e2; color: #991b1b; }
+        .priority-urgent { background-color: #fecaca; color: #7f1d1d; }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        .dropdown-menu {
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal {
+            animation: modalFadeIn 0.3s ease;
+        }
+        
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="flex">
+    <aside class="sidebar p-6 transition-all duration-300">
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                    <i class="fas fa-city text-blue-600 text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold sidebar-content">Urban<span class="text-white">Fix</span> Admin</h1>
+            </div>
+            <button id="toggleSidebar" class="text-white hover:text-blue-200 transition-colors">
+            </button>
+        </div>
+        
+        <nav class="space-y-2">
+            <a href="#dashboard" class="nav-item active flex items-center space-x-3 p-3 text-white">
+                <i class="fas fa-chart-pie"></i>
+                <span class="sidebar-content">Dashboard</span>
+            </a>
+            
+            <a href="#complaints" class="nav-item flex items-center space-x-3 p-3 text-white">
+                <i class="fas fa-flag"></i>
+                <span class="sidebar-content">Complaints</span>
+            </a>
+            
+            <a href="#users" class="nav-item flex items-center space-x-3 p-3 text-white">
+                <i class="fas fa-users"></i>
+                <span class="sidebar-content">Users</span>
+            </a>
+            
+            <a href="#departments" class="nav-item flex items-center space-x-3 p-3 text-white">
+                <i class="fas fa-building"></i>
+                <span class="sidebar-content">Departments</span>
+            </a>
+            
+            <a href="#reports" class="nav-item flex items-center space-x-3 p-3 text-white">
+                <i class="fas fa-chart-bar"></i>
+                <span class="sidebar-content">Reports</span>
+            </a>
+            
+            <a href="#settings" class="nav-item flex items-center space-x-3 p-3 text-white">
+                <i class="fas fa-cog"></i>
+                <span class="sidebar-content">Settings</span>
+            </a>
+        </nav>
+        
+        <div class="mt-auto pt-6 border-t border-white/20">
+            <div class="flex items-center space-x-3 p-3">
+                <img src="https://placehold.co/40x40" alt="Admin profile picture showing a professional business person in formal attire" class="profile-img w-10 h-10 rounded-full">
+                <div class="profile-info sidebar-content">
+                    <p class="text-white font-semibold">Admin User</p>
+                    <p class="text-blue-200 text-sm">Super Administrator</p>
+                </div>
+            </div>
+            <a href="{% url 'signout' %}" class="logout-link w-full mt-4 p-3 text-white hover:bg-white/10 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                <span class="logout-text sidebar-content">Logout</span><i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </aside>
+
+    <main class="main-content flex-1 p-6 pb-20">
+        <header class="glass-effect p-6 mb-6 flex justify-between items-center">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">Admin Dashboard</h2>
+                <p class="text-gray-600">Welcome back, Administrator! Here's what's happening today.</p>
+            </div>
+        </header>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="stat-card glass-effect p-6 text-center">
+                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-flag text-blue-600 text-xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">{{ total_complaints }}</h3>
+                <p class="text-gray-600">Total Complaints</p>
+            </div>
+
+            <div class="stat-card glass-effect p-6 text-center">
+                <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-clock text-yellow-600 text-xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">{{ pending_count }}</h3>
+                <p class="text-gray-600">Pending</p>
+            </div>
+
+            <div class="stat-card glass-effect p-6 text-center">
+                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">{{ resolved_count }}</h3>
+                <p class="text-gray-600">Resolved</p>
+            </div>
+
+            <div class="stat-card glass-effect p-6 text-center">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-times-circle text-red-600 text-xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">{{ rejected_count }}</h3>
+                <p class="text-gray-600">Rejected</p>
+            </div>
+            <div class="stat-card glass-effect p-6 text-center mt-6 lg:col-span-4">
+                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-users text-purple-600 text-xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">{{ total_users }}</h3>
+                <p class="text-gray-600">Registered Users</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="glass-effect p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Complaints by Status</h3>
+                <div class="chart-container">
+                   <canvas id="statusChart" width="400" height="400"></canvas>
+                </div>
+            </div>
+            
+            <div class="glass-effect p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Complaints by Category</h3>
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-effect p-6 mb-8">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-semibold text-gray-800">Recent Complaints</h3>
+                <div class="flex space-x-4">
+                    <select class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option>All Status</option>
+                        <option>Pending</option>
+                        <option>In Progress</option>
+                        <option>Resolved</option>
+                    </select>
+                    <select class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option>All Categories</option>
+                        <option>Water Leakage</option>
+                        <option>Road Issues</option>
+                        <option>Garbage</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="p-3 text-left">Complaint ID</th>
+                            <th class="p-3 text-left">Category</th>
+                            <th class="p-3 text-left">User</th>
+                            <th class="p-3 text-left">Location</th>
+                            <th class="p-3 text-left">Priority</th>
+                            <th class="p-3 text-left">Status</th>
+                            <th class="p-3 text-left">Date</th>
+                            <th class="p-3 text-left">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b complaint-card">
+                            <td class="p-3 font-mono">URB01234</td>
+                            <td class="p-3">Water Leakage</td>
+                            <td class="p-3">John Doe</td>
+                            <td class="p-3">Main Street</td>
+                            <td class="p-3"><span class="priority-badge priority-high">High</span></td>
+                            <td class="p-3"><span class="status-badge status-in-progress">In Progress</span></td>
+                            <td class="p-3">2 hours ago</td>
+                            <td class="p-3">
+                                <button class="text-blue-600 hover:text-blue-800 mr-2">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="text-green-600 hover:text-green-800">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <tr class="border-b complaint-card">
+                            <td class="p-3 font-mono">URB01233</td>
+                            <td class="p-3">Broken Road</td>
+                            <td class="p-3">Jane Smith</td>
+                            <td class="p-3">Park Avenue</td>
+                            <td class="p-3"><span class="priority-badge priority-medium">Medium</span></td>
+                            <td class="p-3"><span class="status-badge status-pending">Pending</span></td>
+                            <td class="p-3">5 hours ago</td>
+                            <td class="p-3">
+                                <button class="text-blue-600 hover:text-blue-800 mr-2">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="text-green-600 hover:text-green-800">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <tr class="border-b complaint-card">
+                            <td class="p-3 font-mono">URB01232</td>
+                            <td class="p-3">Garbage Collection</td>
+                            <td class="p-3">Mike Johnson</td>
+                            <td class="p-3">Elm Street</td>
+                            <td class="p-3"><span class="priority-badge priority-low">Low</span></td>
+                            <td class="p-3"><span class="status-badge status-resolved">Resolved</span></td>
+                            <td class="p-3">1 day ago</td>
+                            <td class="p-3">
+                                <button class="text-blue-600 hover:text-blue-800 mr-2">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="text-green-600 hover:text-green-800">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <tr class="border-b complaint-card">
+                            <td class="p-3 font-mono">URB01231</td>
+                            <td class="p-3">Street Light</td>
+                            <td class="p-3">Sarah Wilson</td>
+                            <td class="p-3">Oak Road</td>
+                            <td class="p-3"><span class="priority-badge priority-urgent">Urgent</span></td>
+                            <td class="p-3"><span class="status-badge status-in-progress">In Progress</span></td>
+                            <td class="p-3">2 days ago</td>
+                            <td class="p-3">
+                                <button class="text-blue-600 hover:text-blue-800 mr-2">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="text-green-600 hover:text-green-800">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-6 flex justify-between items-center">
+                <span class="text-gray-600">Showing 1-4 of 1,247 complaints</span>
+                <div class="flex space-x-2">
+                    <button class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-100">Previous</button>
+                    <button class="px-3 py-1 bg-blue-600 text-white rounded-lg">1</button>
+                    <button class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-100">2</button>
+                    <button class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-100">3</button>
+                    <button class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-100">Next</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="glass-effect p-6 text-center">
+                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-plus-circle text-blue-600 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">Add New Department</h3>
+                <p class="text-gray-600 mb-4">Create a new department for complaint assignment</p>
+                <button class="btn-primary px-6 py-2 rounded-lg text-white font-semibold">
+                    Add Department
+                </button>
+            </div>
+            
+            <div class="glass-effect p-6 text-center">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-file-export text-green-600 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">Generate Reports</h3>
+                <p class="text-gray-600 mb-4">Export comprehensive reports and analytics</p>
+                <button class="btn-primary px-6 py-2 rounded-lg text-white font-semibold">
+                    Generate Report
+                </button>
+            </div>
+            
+            <div class="glass-effect p-6 text-center">
+                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-cog text-purple-600 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">System Settings</h3>
+                <p class="text-gray-600 mb-4">Configure system preferences and notifications</p>
+                <button class="btn-primary px-6 py-2 rounded-lg text-white font-semibold">
+                    Configure
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <div id="complaintModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+        <div class="glass-effect p-6 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto modal">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold text-gray-800">Complaint Details - URB01234</h3>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <h4 class="font-semibold text-gray-800 mb-2">Complaint Information</h4>
+                    <div class="space-y-2">
+                        <p><span class="text-gray-600">Category:</span> Water Leakage</p>
+                        <p><span class="text-gray-600">Priority:</span> <span class="priority-badge priority-high">High</span></p>
+                        <p><span class="text-gray-600">Status:</span> <span class="status-badge status-in-progress">In Progress</span></p>
+                        <p><span class="text-gray-600">Reported:</span> 2 hours ago</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold text-gray-800 mb-2">User Information</h4>
+                    <div class="space-y-2">
+                        <p><span class="text-gray-600">Name:</span> John Doe</p>
+                        <p><span class="text-gray-600">Email:</span> john.doe@email.com</p>
+                        <p><span class="text-gray-600">Phone:</span> +1 234-567-8900</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <h4 class="font-semibold text-gray-800 mb-2">Location</h4>
+                <p class="text-gray-800">123 Main Street, Downtown District</p>
+                <div class="mt-2 bg-gray-200 rounded-lg h-40 flex items-center justify-center">
+                    <i class="fas fa-map-marker-alt text-2xl text-gray-400"></i>
+                    <span class="ml-2 text-gray-600">Map View</span>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <h4 class="font-semibold text-gray-800 mb-2">Description</h4>
+                <p class="text-gray-700 bg-gray-50 p-4 rounded-lg">
+                    There's a major water leakage at the intersection of Main Street and 5th Avenue. 
+                    Water has been flowing continuously for the past 3 hours, creating a large puddle 
+                    and potentially causing damage to the road surface.
+                </p>
+            </div>
+            
+            <div class="mb-6">
+                <h4 class="font-semibold text-gray-800 mb-2">Attached Image</h4>
+                <img src="https://placehold.co/600x400" alt="Water leakage issue showing a large puddle forming at a street intersection with visible water flow from a pipe" class="w-full h-64 object-cover rounded-lg">
+            </div>
+            
+            <div class="flex space-x-4">
+                <button class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">
+                    <i class="fas fa-edit mr-2"></i>Update Status
+                </button>
+                <button class="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700">
+                    <i class="fas fa-check mr-2"></i>Mark Resolved
+                </button>
+                <button class="flex-1 bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700">
+                    <i class="fas fa-times mr-2"></i>Close
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle sidebar
+            const toggleSidebar = document.getElementById('toggleSidebar');
+            const body = document.body;
+            
+            toggleSidebar.addEventListener('click', function() {
+                body.classList.toggle('collapsed');
+            });
+            
+            // Modal functionality
+            const complaintModal = document.getElementById('complaintModal');
+            const closeModal = document.getElementById('closeModal');
+            const viewButtons = document.querySelectorAll('.fa-eye').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    complaintModal.classList.remove('hidden');
+                    complaintModal.classList.add('flex');
+                });
+            });
+            
+            closeModal.addEventListener('click', function() {
+                complaintModal.classList.add('hidden');
+                complaintModal.classList.remove('flex');
+            });
+            
+            // Close modal when clicking outside
+            complaintModal.addEventListener('click', function(e) {
+                if (e.target === complaintModal) {
+                    complaintModal.classList.add('hidden');
+                    complaintModal.classList.remove('flex');
+                }
+            });
+            
+            const statusData = {{ status_data_json|safe }};
+
+            const ctx = document.getElementById('statusChart');
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Pending', 'In Progress', 'Resolved', 'Rejected'],
+                    datasets: [{
+                        // 2. Use the new JavaScript variable for the chart data
+                        data: statusData,
+                        backgroundColor: [
+                            '#f59e0b',  // yellow for pending
+                            '#3b82f6',  // blue for in progress
+                            '#10b981',  // green for resolved
+                            '#ef4444'   // red for rejected
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            const categoryChart = new Chart(document.getElementById('categoryChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Water', 'Roads', 'Garbage', 'Lights', 'Sewage', 'Parks'],
+                    datasets: [{
+                        label: 'Complaints by Category',
+                        data: [345, 289, 156, 98, 76, 45],
+                        backgroundColor: '#2563eb',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Simulate loading data
+            setTimeout(() => {
+                document.querySelectorAll('.loading-spinner').forEach(spinner => {
+                    spinner.style.display = 'none';
+                });
+            }, 2000);
+            
+            // Navigation active state
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    navItems.forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!-- admin_dashboard/templates/admin_dashboard/monthly_summary.html -->
+{% extends "admin_dashboard/base.html" %}
+
+{% block title %}Monthly Summary Report{% endblock %}
+{% block page_title %}Monthly Complaints Summary{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <h2 class="text-xl font-semibold mb-4 text-gray-800">Monthly Complaint Breakdown (Last 12 Months)</h2>
+
+    {% if monthly_data %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border border-gray-200">
+            <thead>
+                <tr class="bg-gray-100 text-left text-gray-600 uppercase text-sm leading-normal">
+                    <th class="py-3 px-6 text-left">Month</th>
+                    <th class="py-3 px-6 text-center">Total Complaints</th>
+                    <th class="py-3 px-6 text-center">Pending</th>
+                    <th class="py-3 px-6 text-center">In Progress</th>
+                    <th class="py-3 px-6 text-center">Resolved</th>
+                    <th class="py-3 px-6 text-center">Rejected</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700 text-sm font-light">
+                {% for data in monthly_data %}
+                <tr class="border-b border-gray-200 hover:bg-gray-50">
+                    <td class="py-3 px-6 text-left">{{ data.month|date:"M Y" }}</td>
+                    <td class="py-3 px-6 text-center font-bold">{{ data.total }}</td>
+                    <td class="py-3 px-6 text-center text-yellow-700">{{ data.pending }}</td>
+                    <td class="py-3 px-6 text-center text-blue-700">{{ data.in_progress }}</td>
+                    <td class="py-3 px-6 text-center text-green-700">{{ data.resolved }}</td>
+                    <td class="py-3 px-6 text-center text-red-700">{{ data.rejected }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-gray-500">No monthly complaint data available for the last 12 months.</p>
+    {% endif %}
+</div>
+{% endblock %}

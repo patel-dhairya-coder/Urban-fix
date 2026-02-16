@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanFix - Select Role</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            border-color: #2563eb;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+
+    <div class="max-w-4xl w-full text-center">
+        
+        <div class="mb-12">
+            <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <i class="fas fa-city text-white text-3xl"></i>
+            </div>
+            <h1 class="text-4xl font-bold text-white mb-2">Welcome to Urban<span class="text-blue-300">Fix</span></h1>
+            <p class="text-blue-100 text-lg">Please select your login type to continue</p>
+        </div>
+
+        <div class="flex flex-col md:flex-row justify-center gap-8">
+            
+            <a href="{% url 'admin_dashboard:login' %}" class="glass-card w-full md:w-80 p-8 rounded-2xl cursor-pointer border-2 border-transparent group text-gray-800">
+                <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-red-200 transition-colors">
+                    <i class="fas fa-shield-alt text-red-500 text-4xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-3 group-hover:text-blue-600 transition-colors">Admin Login</h2>
+                <p class="text-gray-500 text-sm">
+                    Access the dashboard, manage reports, and oversee system operations.
+                </p>
+            </a>
+
+            <a href="{% url 'contractor:login' %}" class="glass-card w-full md:w-80 p-8 rounded-2xl cursor-pointer border-2 border-transparent group text-gray-800">
+                <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-blue-200 transition-colors">
+                    <i class="fas fa-hard-hat text-blue-500 text-4xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-3 group-hover:text-blue-600 transition-colors">Contractor Login</h2>
+                <p class="text-gray-500 text-sm">
+                    View assigned tasks, update work status, and track repairs.
+                </p>
+            </a>
+
+        </div>
+
+        <div class="mt-12">
+            <a href="{% url 'home' %}" class="text-white hover:text-blue-200 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Home
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>

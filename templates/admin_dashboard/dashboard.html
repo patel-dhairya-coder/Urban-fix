@@ -1,0 +1,193 @@
+<!-- admin_dashboard/templates/admin_dashboard/dashboard.html -->
+{% extends "admin_dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block extra_head %}
+    <!-- Chart.js CDN (if not using django-chartjs or for manual integration) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <!-- Card 1: Total Complaints -->
+    <div class="bg-white rounded-lg shadow-md p-6 flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-500">Total Complaints</h3>
+            <p class="text-3xl font-bold text-gray-800">{{ total_complaints }}</p>
+        </div>
+        <i class="fas fa-clipboard-list text-4xl text-blue-400"></i>
+    </div>
+
+    <!-- Card 2: Pending Complaints -->
+    <div class="bg-white rounded-lg shadow-md p-6 flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-500">Pending</h3>
+            <p class="text-3xl font-bold text-yellow-600">{{ status_counts.pending|default:0 }}</p>
+        </div>
+        <i class="fas fa-hourglass-half text-4xl text-yellow-400"></i>
+    </div>
+
+    <!-- Card 3: In Progress Complaints -->
+    <div class="bg-white rounded-lg shadow-md p-6 flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-500">In Progress</h3>
+            <p class="text-3xl font-bold text-blue-600">{{ status_counts.in_progress|default:0 }}</p>
+        </div>
+        <i class="fas fa-sync-alt text-4xl text-blue-400"></i>
+    </div>
+
+    <!-- Card 4: Resolved Complaints -->
+    <div class="bg-white rounded-lg shadow-md p-6 flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-500">Resolved</h3>
+            <p class="text-3xl font-bold text-green-600">{{ status_counts.resolved|default:0 }}</p>
+        </div>
+        <i class="fas fa-check-circle text-4xl text-green-400"></i>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Chart 1: Complaint Status Distribution (Pie Chart) -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Complaint Status Distribution</h2>
+        <div class="h-64 flex items-center justify-center">
+            <canvas id="statusPieChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Chart 2: Complaints Per Category (Bar Chart) -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Complaints Per Category</h2>
+        <div class="h-64 flex items-center justify-center">
+            <canvas id="categoryBarChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Chart 3: Monthly Complaints Trend (Line Chart) -->
+    <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Monthly Complaints Trend (Last 6 Months)</h2>
+        <div class="h-80 flex items-center justify-center">
+            <canvas id="monthlyLineChart"></canvas>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Data for Status Pie Chart
+    const statusLabels = Object.keys({{ status_counts|safe }});
+    const statusData = Object.values({{ status_counts|safe }});
+    const statusColors = ['#3B82F6','#FBBF24', '#10B981', '#EF4444']; // Yellow, Blue, Green, Red
+
+    new Chart(document.getElementById('statusPieChart'), {
+        type: 'pie',
+        data: {
+            labels: statusLabels.map(label => label.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase())),
+            datasets: [{
+                data: statusData,
+                backgroundColor: statusColors.slice(0, statusLabels.length),
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+
+    // Data for Category Bar Chart
+    const categoryLabels = [{% for item in complaints_per_category %}"{{ item.category|capfirst }}",{% endfor %}];
+    const categoryData = [{% for item in complaints_per_category %}{{ item.count }},{% endfor %}];
+
+    new Chart(document.getElementById('categoryBarChart'), {
+        type: 'bar',
+        data: {
+            labels: categoryLabels,
+            datasets: [{
+                label: 'Complaints by Category',
+                data: categoryData,
+                backgroundColor: 'rgba(59, 130, 246, 0.7)', // Blue
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Complaints'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Category'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // Data for Monthly Line Chart
+const monthlyLabels = JSON.parse("{{ monthly_labels|safe }}".replace(/'/g,'"'));
+const monthlyData = JSON.parse("{{ monthly_data|safe }}".replace(/'/g,'"'));
+
+    new Chart(document.getElementById('monthlyLineChart'), {
+        type: 'line',
+        data: {
+            labels: monthlyLabels,
+            datasets: [{
+                label: 'Complaints Per Month',
+                data: monthlyData,
+                fill: false,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Complaints'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Month'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

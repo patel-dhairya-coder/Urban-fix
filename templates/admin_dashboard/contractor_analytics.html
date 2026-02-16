@@ -1,0 +1,141 @@
+<!-- admin_dashboard/templates/admin_dashboard/contractor_analytics.html -->
+{% extends "admin_dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Contractor Analytics{% endblock %}
+{% block page_title %}Contractor Performance Analytics{% endblock %}
+
+{% block extra_head %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <!-- KPI Card: Total Contractors -->
+    <div class="bg-white rounded-lg shadow-md p-6 flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-500">Total Contractors</h3>
+            <p class="text-3xl font-bold text-gray-800">{{ total_contractors }}</p>
+        </div>
+        <i class="fas fa-hard-hat text-4xl text-purple-400"></i>
+    </div>
+
+    <!-- KPI Card: Active Contractors -->
+    <div class="bg-white rounded-lg shadow-md p-6 flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-500">Active Contractors</h3>
+            <p class="text-3xl font-bold text-green-600">{{ active_contractors }}</p>
+        </div>
+        <i class="fas fa-user-check text-4xl text-green-400"></i>
+    </div>
+
+    <!-- KPI Card: Assigned Resolved Tasks -->
+    <div class="bg-white rounded-lg shadow-md p-6 flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-500">Assigned Resolved</h3>
+            <p class="text-3xl font-bold text-blue-600">{{ assigned_resolved_tasks }}</p>
+        </div>
+        <i class="fas fa-check-double text-4xl text-blue-400"></i>
+    </div>
+
+    <!-- KPI Card: Assigned Pending Tasks -->
+    <div class="bg-white rounded-lg shadow-md p-6 flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-500">Assigned Pending</h3>
+            <p class="text-3xl font-bold text-red-600">{{ assigned_pending_tasks }}</p>
+        </div>
+        <i class="fas fa-exclamation-triangle text-4xl text-red-400"></i>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Chart: Complaints Assigned Per Contractor (Bar Chart) -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Complaints Assigned Per Contractor</h2>
+        <div class="h-80 flex items-center justify-center">
+            <canvas id="assignedComplaintsBarChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Chart: Task Distribution Among Contractors (Pie Chart for assigned tasks status) -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Assigned Task Status Distribution</h2>
+        <div class="h-80 flex items-center justify-center">
+            <canvas id="taskDistributionPieChart"></canvas>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Data for Complaints Assigned Per Contractor Bar Chart
+    const assignedLabels = JSON.parse("{{ assigned_labels|safe }}".replace(/&quot;/g,'"'));
+    const assignedData = JSON.parse("{{ assigned_data|safe }}".replace(/&quot;/g,'"'));
+
+    new Chart(document.getElementById('assignedComplaintsBarChart'), {
+        type: 'bar',
+        data: {
+            labels: assignedLabels,
+            datasets: [{
+                label: 'Complaints Assigned',
+                data: assignedData,
+                backgroundColor: 'rgba(76, 29, 149, 0.7)', // Deep Purple
+                borderColor: 'rgba(76, 29, 149, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Complaints'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Contractor Name'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // Data for Task Distribution Among Contractors Pie Chart
+    const taskDistLabels = JSON.parse("{{ task_dist_labels|safe }}".replace(/&quot;/g,'"'));
+    const taskDistData = JSON.parse("{{ task_dist_data|safe }}".replace(/&quot;/g,'"'));
+    const taskDistColors = ['#FBBF24', '#3B82F6', '#10B981', '#EF4444']; // Yellow, Blue, Green, Red
+
+    new Chart(document.getElementById('taskDistributionPieChart'), {
+        type: 'pie',
+        data: {
+            labels: taskDistLabels,
+            datasets: [{
+                data: taskDistData,
+                backgroundColor: taskDistColors.slice(0, taskDistLabels.length),
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

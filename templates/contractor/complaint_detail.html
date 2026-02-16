@@ -1,0 +1,131 @@
+<!-- contractor/templates/contractor/complaint_detail.html -->
+{% extends "contractor/base.html" %}
+{% load static %}
+
+{% block title %}Complaint Details - {{ complaint.report_id }}{% endblock %}
+{% block page_title %}Complaint #{{ complaint.report_id }} Details{% endblock %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6 max-w-4xl mx-auto">
+    <div class="flex justify-between items-center mb-6 border-b pb-4">
+        <h2 class="text-2xl font-bold text-gray-800">Job Details</h2>
+        <a href="{% url 'contractor:complaint_list' %}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-md">
+            <i class="fas fa-arrow-left mr-2"></i> Back to List
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+            <div class="space-y-4 mb-6">
+                <div>
+                    <p class="text-gray-500 text-sm">Report ID:</p>
+                    <p class="font-semibold text-lg text-gray-900">{{ complaint.report_id }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500 text-sm">Submitted By:</p>
+                    <p class="font-semibold text-lg text-blue-600">{{ complaint.user.username }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500 text-sm">Category:</p>
+                    <p class="font-semibold text-lg text-gray-900">{{ complaint.get_category_display }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500 text-sm">General Location:</p>
+                    <p class="font-semibold text-lg text-gray-900">{{ complaint.location }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500 text-sm">Submitted On:</p>
+                    <p class="font-semibold text-lg text-gray-900">{{ complaint.submitted_at|date:"M d, Y H:i" }}</p>
+                </div>
+                 <div>
+                    <p class="text-gray-500 text-sm">Assigned On:</p>
+                    <p class="font-semibold text-lg text-gray-900">{{ complaint.assigned_at|date:"M d, Y H:i" }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500 text-sm">Current Status:</p>
+                    {% if complaint.status == 'pending' %}
+                        <span class="bg-yellow-200 text-yellow-800 py-1 px-3 rounded-full text-base font-semibold">{{ complaint.get_status_display }}</span>
+                    {% elif complaint.status == 'in_progress' %}
+                        <span class="bg-blue-200 text-blue-800 py-1 px-3 rounded-full text-base font-semibold">{{ complaint.get_status_display }}</span>
+                    {% elif complaint.status == 'resolved' %}
+                        <span class="bg-green-200 text-green-800 py-1 px-3 rounded-full text-base font-semibold">{{ complaint.get_status_display }}</span>
+                    {% elif complaint.status == 'rejected' %}
+                        <span class="bg-red-200 text-red-800 py-1 px-3 rounded-full text-base font-semibold">{{ complaint.get_status_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <p class="text-gray-500 text-sm mb-1">Description:</p>
+                <p class="text-gray-800 leading-relaxed bg-gray-50 p-3 rounded-md border border-gray-200">{{ complaint.description }}</p>
+            </div>
+        </div>
+
+        <div>
+            {% if complaint.latitude and complaint.longitude %}
+            <div class="mb-6">
+                <p class="text-gray-500 text-sm mb-2">📍 Precise Location on Map:</p>
+                <div id="complaintMap" class="h-80 w-full rounded-lg shadow-sm border border-gray-300 z-0"></div>
+            </div>
+            {% endif %}
+            {% if complaint.photo %}
+            <div class="mb-6">
+                <p class="text-gray-500 text-sm mb-2">📷 Attached Photo:</p>
+                <a href="{{ complaint.photo.url }}" target="_blank">
+                    <img src="{{ complaint.photo.url }}" alt="Complaint Photo" class="w-full h-auto rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity">
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Contractor Status Update Form -->
+    <div class="mt-8 pt-6 border-t border-gray-200">
+        <h3 class="text-xl font-semibold mb-4 text-gray-800">Update Job Status</h3>
+        <form method="POST" action="{% url 'contractor:complaint_detail' report_id=complaint.report_id %}">
+            {% csrf_token %}
+            <div class="flex items-center space-x-4">
+                <label for="status" class="block text-gray-700 font-medium">New Status:</label>
+                <select name="status" id="status" class="flex-grow border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                    <option value="">--- Select new status ---</option>
+                    {% for key, value in status_choices %}
+                        <option value="{{ key }}" {% if complaint.status == key %}disabled{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75">
+                    <i class="fas fa-check-circle mr-2"></i> Update Status
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+    // Safely get coordinates from Django template
+    const lat = {{ complaint.latitude|default:'null' }};
+    const lng = {{ complaint.longitude|default:'null' };
+
+    // Check if the map container and coordinates exist
+    const mapContainer = document.getElementById('complaintMap');
+    if (mapContainer && lat !== null && lng !== null) {
+        // Initialize the map and set its view to the complaint's coordinates
+        const map = L.map('complaintMap').setView([lat, lng], 16); // Using a high zoom level (e.g., 16)
+
+        // Add the OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Add a marker to show the exact spot. It is not draggable.
+        L.marker([lat, lng]).addTo(map)
+            .bindPopup('<b>{{ complaint.get_category_display|escapejs }}</b><br>{{ complaint.location|escapejs }}').openPopup();
+    }
+</script>
+{% endblock %}

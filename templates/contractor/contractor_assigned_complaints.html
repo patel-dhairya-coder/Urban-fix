@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}My Assigned Complaints{% endblock %}
+{% block page_heading %}My Assigned Complaints{% endblock %}
+
+{% block content %}
+    <table>
+        <thead>
+            <tr>
+                <th>Report ID</th>
+                <th>Category</th>
+                <th>Location</th>
+                <th>Description</th>
+                <th>Date Assigned</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for complaint in assigned_complaints %}
+            <tr>
+                <td>URB{{ complaint.id|stringformat:"05d" }}</td> {# Format ID for display #}
+                <td>{{ complaint.get_category_display }}</td>
+                <td>{{ complaint.location }}</td>
+                <td>{{ complaint.description|truncatechars:70 }}</td>
+                <td>{{ complaint.date_assigned|date:"M d, Y" }}</td>
+                <td>{{ complaint.get_status_display }}</td>
+                <td>
+                    <a href="{% url 'complaint_detail_view' complaint.id %}" class="blue-button">View / Update</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7">No complaints assigned to you.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

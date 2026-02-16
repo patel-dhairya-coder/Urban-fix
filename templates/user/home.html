@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanFix - Report & Track Urban Issues</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS for Map Integration -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #0f172a;
+            --accent: #f59e0b;
+            --light: #f8fafc;
+            --dark: #1e293b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--dark);
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #1d4ed8);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+        }
+
+        .status-pending { background-color: #fef3c7; color: #92400e; }
+        .status-in-progress { background-color: #dbeafe; color: #1e40af; }
+        .status-resolved { background-color: #dcfce7; color: #166534; }
+
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .drop-zone {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden; /* To ensure the image preview doesn't overflow the rounded corners */
+        }
+
+        .drop-zone.drag-over {
+            border-color: #2563eb !important;
+            background-color: #eff6ff;
+            transform: scale(1.02);
+        }
+
+        /* Map specific style */
+        #map {
+            height: 300px; /* Adjusted height for visibility */
+            width: 100%;
+            border-radius: 0.5rem;
+            z-index: 1; /* Ensure map is visible */
+        }
+
+        /* Mobile Menu Styles */
+        .mobile-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 50;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease-in-out;
+            transform: translateX(-100%);
+        }
+
+        .mobile-menu.open {
+            display: flex;
+            transform: translateX(0);
+        }
+
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-6xl mx-auto">
+        {% if messages %}
+                    <div class="mb-6">
+                        {% for message in messages %}
+                            <div class="p-4 rounded-md mb-3 text-center {% if message.tags == 'success' %}bg-green-100 text-green-800 border border-green-200{% elif message.tags == 'error' %}bg-red-100 text-red-800 border border-red-200{% elif message.tags == 'info' %}bg-blue-100 text-blue-800 border border-blue-200{% endif %}">
+                                <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %} mr-2"></i>
+                                {{ message }}
+                                <button class="close-btn" onclick="this.parentElement.style.display='none';">&times;</button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+        <header class="glass-effect p-6 mb-8 flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
+                    <i class="fas fa-city text-white text-2xl"></i>
+                </div>
+                    <a href="{% url 'role_select' %}" class="text-gray-700 hover:text-blue-600 transition-colors">
+                    <h1 class="text-3xl font-bold text-gray-800">Urban<span class="text-blue-600">Fix</span></h1>
+                    </a>
+            </div>
+
+            <nav class="hidden md:flex space-x-6">
+                <a href="#report" class="text-gray-700 hover:text-blue-600 transition-colors">Report Issue</a>
+                <a href="#track" class="text-gray-700 hover:text-blue-600 transition-colors">Track Status</a>
+
+                {% if user.is_authenticated %}
+                    <a href="#dashboard" class="text-gray-700 hover:text-blue-600 transition-colors">My Complaints</a>
+                    <a href="{% url 'signout' %}" class="text-gray-700 hover:text-blue-600 transition-colors">Logout ({{ user.username }})</a>
+                {% else %}
+                    <a href="{% url 'signin' %}" class="text-gray-700 hover:text-blue-600 transition-colors">Login</a>
+                    <a href="{% url 'signup' %}" class="text-gray-700 hover:text-blue-600 transition-colors">Sign Up</a>
+                {% endif %}
+            </nav>
+
+            <button class="md:hidden text-gray-700" id="mobile-menu-button">
+                <i class="fas fa-bars text-2xl"></i>
+            </button>
+        </header>
+
+        <nav id="mobile-menu" class="mobile-menu text-gray-800 space-y-8">
+            <button class="absolute top-8 right-8 text-3xl text-gray-700" id="close-mobile-menu">
+                <i class="fas fa-times"></i>
+            </button>
+            <a href="#report" class="text-2xl font-bold hover:text-blue-600 transition-colors">Report Issue</a>
+            <a href="#track" class="text-2xl font-bold hover:text-blue-600 transition-colors">Track Status</a>
+
+            {% if user.is_authenticated %}
+                <a href="#dashboard" class="text-2xl font-bold hover:text-blue-600 transition-colors">My Complaints</a>
+                <a href="{% url 'signout' %}" class="text-2xl font-bold hover:text-blue-600 transition-colors">Logout ({{ user.username }})</a>
+            {% else %}
+                <a href="{% url 'signin' %}" class="text-2xl font-bold hover:text-blue-600 transition-colors">Login</a>
+                <a href="{% url 'signup' %}" class="text-2xl font-bold hover:text-blue-600 transition-colors">Sign Up</a>
+            {% endif %}
+        </nav>
+
+        <section class="glass-effect p-8 mb-8 text-center">
+            <div class="max-w-3xl mx-auto">
+                <h2 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
+                    Make Your City Better,<br>
+                    <span class="text-blue-600">One Report at a Time</span>
+                </h2>
+                <p class="text-gray-600 text-lg mb-8">
+                    Report urban issues with photos, track progress, and help your community improve.
+                    Admins can see your uploaded images and take action!
+                </p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a href="#report" class="btn-primary px-8 py-4 rounded-full text-white font-semibold">
+                        <i class="fas fa-plus-circle mr-2"></i>Report with Photo
+                    </a>
+                    <a href="#track" class="px-8 py-4 rounded-full border-2 border-blue-600 text-blue-600 font-semibold">
+                        <i class="fas fa-search mr-2"></i>Track Status
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="report" class="glass-effect p-8 mb-8">
+            <h3 class="text-2xl font-bold text-center text-gray-800 mb-8">Report an Urban Issue</h3>
+            {% if user.is_authenticated %}
+                <form id="complaintForm" method="POST" action="{% url 'report' %}" enctype="multipart/form-data" class="max-w-2xl mx-auto">
+                    {% csrf_token %}
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="category" class="block text-sm font-medium text-gray-700 mb-2">Issue Category</label>
+                            <select id="category" name="category" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                                <option value="">Select Category</option>
+                                <option value="water">Water Leakage</option>
+                                <option value="road">Broken Road/Potholes</option>
+                                <option value="garbage">Garbage Collection</option>
+                                <option value="electricity">Electricity Issues</option>
+                                <option value="sewage">Sewage Problems</option>
+                                <option value="parks">Park Maintenance</option>
+                                <option value="streetlights">Street Light Issues</option>
+                                <option value="traffic">Traffic Problems</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="location" class="block text-sm font-medium text-gray-700 mb-2">General Location</label>
+                            <input type="text" id="location" name="location" placeholder="Enter neighborhood or general address"
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                        </div>
+                    </div>
+
+                    <!-- New Map Section -->
+                    <div class="mt-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            📍 Precise Location (Click map to set marker)
+                            <span id="latlngDisplay" class="font-normal text-xs text-blue-600 ml-2"></span>
+                        </label>
+                        <div id="map" class="border border-gray-300 rounded-lg"></div>
+                        <!-- Hidden fields to store coordinates -->
+                        <input type="hidden" id="latitude" name="latitude" required>
+                        <input type="hidden" id="longitude" name="longitude" required>
+                    </div>
+
+                    <div class="mt-6">
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                        <textarea id="description" name="description" placeholder="Describe the issue in detail..."
+                                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 h-32"
+                                  required></textarea>
+                    </div>
+
+                    <div class="mt-6">
+                        <label for="photoUpload" class="block text-sm font-medium text-gray-700 mb-2">
+                            📷 Upload Photo Evidence
+                            <span class="text-green-600 font-semibold">(Recommended for faster resolution)</span>
+                        </label>
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg drop-zone h-64 relative overflow-hidden" id="dropZone">
+                             <div id="initialDropZoneContent" class="flex flex-col items-center justify-center h-full p-6">
+                                <i class="fas fa-camera text-gray-400 text-3xl mb-2"></i>
+                                <p class="text-gray-500 mb-2">Take a photo or drag & drop image here</p>
+                                <p class="text-xs text-gray-400">Max 5MB, formats: JPG, PNG, GIF</p>
+                                <input type="file" class="hidden" id="photoUpload" name="photo" accept="image/*">
+                                <button type="button" class="mt-3 px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors" onclick="document.getElementById('photoUpload').click()">
+                                    <i class="fas fa-upload mr-2"></i>Choose File
+                                </button>
+                            </div>
+
+                            <img id="previewImg" class="hidden absolute inset-0 w-full h-full object-cover" src="" alt="Preview">
+                        </div>
+
+                        <div id="imagePreview" class="mt-4 hidden">
+                            <p class="text-sm text-gray-600 mb-2">Selected Image:</p>
+                            <div class="flex items-center space-x-4">
+                                <div>
+                                    <p id="fileName" class="text-sm font-medium text-gray-800"></p>
+                                    <p id="fileSize" class="text-xs text-gray-500"></p>
+                                    <button type="button" id="removeImage" class="text-red-500 text-sm hover:text-red-700">
+                                        <i class="fas fa-trash mr-1"></i>Remove
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 text-center">
+                        <button type="submit" class="btn-primary px-8 py-3 rounded-lg text-white font-semibold">
+                            <i class="fas fa-paper-plane mr-2"></i>Submit Complaint with Photo
+                        </button>
+                        <p class="text-sm text-gray-500 mt-2">
+                            💡 Tip: Photos help admins understand and resolve issues faster!
+                        </p>
+                    </div>
+                </form>
+            {% else %}
+                <div class="text-center p-8 bg-blue-50 rounded-lg">
+                    <p class="text-xl text-gray-700 mb-4">Please <a href="{% url 'signin' %}" class="text-blue-600 font-semibold hover:underline">Login</a> to report an issue.</p>
+                    <p class="text-gray-600">Don't have an account? <a href="{% url 'signup' %}" class="text-blue-600 font-semibold hover:underline">Sign Up</a></p>
+                </div>
+            {% endif %}
+        </section>
+
+        <section id="track" class="glass-effect p-8 mb-8">
+            <h3 class="text-2xl font-bold text-center text-gray-800 mb-8">Track Your Complaint Status</h3>
+            <div class="max-w-md mx-auto">
+                <form method="POST" action="{% url 'track' %}#track">
+                    {% csrf_token %}
+                    <div class="flex space-x-4 mb-6">
+                        <input type="text" id="report_id" name="report_id" placeholder="Enter Complaint ID"
+                            class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                        <button type="submit" class="btn-primary px-6 py-3 rounded-lg text-white font-semibold">
+                            <i class="fas fa-search"></i> Track
+                        </button>
+                    </div>
+                </form>
+
+                {% if tracked_complaint %}
+                <div class="bg-white rounded-lg p-6 shadow-lg mt-4">
+                    <div class="text-center mb-6">
+                        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-check-circle text-green-600 text-3xl"></i>
+                        </div>
+                        <h4 class="font-semibold text-lg">Complaint {{ tracked_complaint.report_id }}</h4>
+                        <p class="text-gray-600">{{ tracked_complaint.category }} - {{ tracked_complaint.location }}</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Status:</span>
+                            <span class="
+                                    {% if tracked_complaint.status == 'pending' %}status-pending
+                                    {% elif tracked_complaint.status == 'in_progress' %}status-in-progress
+                                    {% elif tracked_complaint.status == 'resolved' %}status-resolved
+                                    {% endif %}
+                                    px-3 py-1 rounded-full font-medium">
+                                {{ tracked_complaint.status }}
+                            </span>
+                        </div>
+
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Reported on:</span>
+                            <span class="font-medium">{{ tracked_complaint.submitted_at }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+        {% if user.is_authenticated %}
+        <section id="dashboard" class="glass-effect p-8 mb-8">
+            <h3 class="text-2xl font-bold text-center text-gray-800 mb-8">My Complaints Dashboard</h3>
+
+            <div class="grid md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-yellow-50 p-6 rounded-lg text-center">
+                    <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-clock text-yellow-600"></i>
+                    </div>
+                    <h4 class="font-semibold text-lg mb-1">Pending</h4>
+                    <p class="text-2xl font-bold text-yellow-600">{{ status_counts.pending }}</p>
+                </div>
+
+                <div class="bg-blue-50 p-6 rounded-lg text-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-cog text-blue-600"></i>
+                    </div>
+                    <h4 class="font-semibold text-lg mb-1">In Progress</h4>
+                    <p class="text-2xl font-bold text-blue-600">{{ status_counts.in_progress }}</p>
+                </div>
+
+                <div class="bg-green-50 p-6 rounded-lg text-center">
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-check-circle text-green-600"></i>
+                    </div>
+                    <h4 class="font-semibold text-lg mb-1">Resolved</h4>
+                    <p class="text-2xl font-bold text-green-600">{{ status_counts.resolved }}</p>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="p-3 text-left">Complaint ID</th>
+                            <th class="p-3 text-left">Category</th>
+                            <th class="p-3 text-left">Location</th>
+                            <th class="p-3 text-left">Date</th>
+                            <th class="p-3 text-left">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for complaint in complaints %}
+                        <tr class="border-b">
+                            <td class="p-3">{{ complaint.report_id }}</td>
+                            <td class="p-3">{{ complaint.category }}</td>
+                            <td class="p-3">{{ complaint.location }}</td>
+                            <td class="p-3">{{ complaint.submitted_at|date:"M d, Y" }}</td>
+                            <td class="p-3">
+                                <span class="
+                                    {% if complaint.status == 'pending' %}status-pending
+                                    {% elif complaint.status == 'in_progress' %}status-in-progress
+                                    {% elif complaint.status == 'resolved' %}status-resolved
+                                    {% endif %}
+                                    px-3 py-1 rounded-full text-sm font-medium">
+                                    {{ complaint.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="p-3 text-center text-gray-500">No complaints submitted yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endif %}
+    </div>
+</body>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const closeMenuButton = document.getElementById('close-mobile-menu');
+        const navLinks = mobileMenu.querySelectorAll('a');
+
+        if (menuButton && mobileMenu) {
+            menuButton.addEventListener('click', () => {
+                mobileMenu.classList.add('open');
+            });
+
+            closeMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.remove('open');
+            });
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.remove('open');
+                });
+            });
+        }
+    });
+    const dropZone = document.getElementById('dropZone');
+    const photoUpload = document.getElementById('photoUpload');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImg = document.getElementById('previewImg');
+    const initialDropZoneContent = document.getElementById('initialDropZoneContent');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const removeImage = document.getElementById('removeImage');
+
+    function handleFile(file) {
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                initialDropZoneContent.classList.add('hidden');
+                previewImg.classList.remove('hidden');
+
+                fileName.textContent = file.name;
+                fileSize.textContent = (file.size / 1024).toFixed(2) + ' KB';
+                imagePreview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    photoUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        handleFile(file);
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        photoUpload.files = e.dataTransfer.files;
+        handleFile(file);
+    });
+
+    removeImage.addEventListener('click', () => {
+        photoUpload.value = '';
+        previewImg.classList.add('hidden');
+        initialDropZoneContent.classList.remove('hidden');
+        imagePreview.classList.add('hidden');
+        previewImg.src = '';
+    });
+
+
+    // --- MAP INTEGRATION SCRIPT ---
+
+    // Default view location (e.g., center of a city)
+    const DEFAULT_LAT = 23.0225; // Example: Ahmedabad, India
+    const DEFAULT_LNG = 72.5714;
+    const DEFAULT_ZOOM = 13;
+
+    // Initialize Map
+    var map = L.map('map').setView([DEFAULT_LAT, DEFAULT_LNG], DEFAULT_ZOOM);
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    var marker = L.marker([DEFAULT_LAT, DEFAULT_LNG], {draggable: true}).addTo(map);
+
+    // Initial value setting
+    document.getElementById('latitude').value = DEFAULT_LAT;
+    document.getElementById('longitude').value = DEFAULT_LNG;
+    document.getElementById('latlngDisplay').textContent = `Lat: ${DEFAULT_LAT.toFixed(4)}, Lng: ${DEFAULT_LNG.toFixed(4)}`;
+
+    function updateMarkerLocation(lat, lng) {
+        // Update marker position
+        marker.setLatLng([lat, lng]);
+
+        // Update hidden form fields
+        document.getElementById('latitude').value = lat;
+        document.getElementById('longitude').value = lng;
+
+        // Update visible display
+        document.getElementById('latlngDisplay').textContent = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+    }
+
+    // Handle map click event
+    map.on('click', function(e) {
+        updateMarkerLocation(e.latlng.lat, e.latlng.lng);
+    });
+
+    // Handle marker drag end event
+    marker.on('dragend', function(e) {
+        var latlng = e.target.getLatLng();
+        updateMarkerLocation(latlng.lat, latlng.lng);
+    });
+
+    // Optional: Get user's current location on load
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const userLat = position.coords.latitude;
+            const userLng = position.coords.longitude;
+            map.setView([userLat, userLng], 16);
+            updateMarkerLocation(userLat, userLng);
+        }, function(error) {
+            // --- FIX: Log a more descriptive error message ---
+            let errorMessage = "Unknown error.";
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = "User denied location permission.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = "Location information is unavailable.";
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = "The request to get user location timed out.";
+                    break;
+                case error.UNKNOWN_ERROR:
+                    errorMessage = "An unknown error occurred.";
+                    break;
+            }
+            console.error(`Geolocation failed: Code ${error.code}: ${errorMessage}`);
+            // User will see the default location if geolocation fails.
+            // No action is needed for the map, as it's already showing the default.
+            // ----------------------------------------------------
+        }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+    }
+</script>
+</html>

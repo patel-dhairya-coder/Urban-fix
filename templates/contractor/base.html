@@ -1,0 +1,74 @@
+<!-- contractor/templates/contractor/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanFix Contractor - {% block title %}{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal flex">
+
+    <!-- Sidebar -->
+    <div class="bg-gray-900 text-white w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-200 ease-in-out" id="sidebar">
+        <a href="{% url 'contractor:dashboard' %}" class="text-white flex items-center space-x-2 px-4">
+            <i class="fas fa-hard-hat text-2xl"></i>
+            <span class="text-2xl font-extrabold">Contractor Panel</span>
+        </a>
+
+        <nav>
+            <a href="{% url 'contractor:dashboard' %}" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 hover:text-white {% if request.resolver_match.view_name == 'contractor:dashboard' %}bg-gray-700{% endif %}">
+                <i class="fas fa-tachometer-alt mr-3"></i> Dashboard
+            </a>
+            <a href="{% url 'contractor:complaint_list' %}" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 hover:text-white {% if 'complaint' in request.resolver_match.view_name %}bg-gray-700{% endif %}">
+                <i class="fas fa-clipboard-list mr-3"></i> My Complaints
+            </a>
+            <a href="{% url 'contractor:logout' %}" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-red-600 hover:text-white mt-8">
+                <i class="fas fa-sign-out-alt mr-3"></i> Logout
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col min-h-screen">
+        <!-- Top Bar -->
+        <header class="bg-white shadow-md p-4 flex justify-between items-center">
+            <button id="sidebarToggle" class="text-gray-500 focus:outline-none md:hidden">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+            <h1 class="text-xl font-bold text-gray-800">{% block page_title %}Dashboard{% endblock %}</h1>
+            <div>
+                <span class="text-gray-600">Welcome, {{ contractor.name }}!</span>
+            </div>
+        </header>
+
+        <!-- Messages -->
+        {% if messages %}
+            <div class="px-4 pt-4">
+                {% for message in messages %}
+                    <div class="p-3 mb-3 rounded-md text-sm {% if message.tags == 'success' %}bg-green-100 text-green-700{% elif message.tags == 'error' %}bg-red-100 text-red-700{% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Content Area -->
+        <main class="flex-1 p-4 md:p-6">
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+
+    <script>
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('-translate-x-full');
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

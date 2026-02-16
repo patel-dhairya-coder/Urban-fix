@@ -1,0 +1,134 @@
+<!-- contractor/templates/contractor/dashboard.html -->
+{% extends "contractor/base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}My Dashboard{% endblock %}
+
+{% block extra_head %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <!-- Card 1: Total Assigned -->
+    <div class="bg-white rounded-lg shadow-md p-6 flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-500">Total Assigned</h3>
+            <p class="text-3xl font-bold text-gray-800">{{ total_assigned }}</p>
+        </div>
+        <i class="fas fa-clipboard-list text-4xl text-blue-400"></i>
+    </div>
+
+    <!-- Card 2: Pending/In Progress -->
+    <div class="bg-white rounded-lg shadow-md p-6 flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-500">Pending Jobs</h3>
+            <p class="text-3xl font-bold text-yellow-600">{{ total_pending }}</p>
+        </div>
+        <i class="fas fa-hourglass-half text-4xl text-yellow-400"></i>
+    </div>
+
+    <!-- Card 3: Resolved -->
+    <div class="bg-white rounded-lg shadow-md p-6 flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-500">Jobs Resolved</h3>
+            <p class="text-3xl font-bold text-green-600">{{ total_resolved }}</p>
+        </div>
+        <i class="fas fa-check-circle text-4xl text-green-400"></i>
+    </div>
+
+    <!-- Card 4: Rejected -->
+    <div class="bg-white rounded-lg shadow-md p-6 flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-500">Jobs Rejected</h3>
+            <p class="text-3xl font-bold text-red-600">{{ total_rejected }}</p>
+        </div>
+        <i class="fas fa-times-circle text-4xl text-red-400"></i>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Chart 1: Status Distribution (Pie Chart) -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Job Status Distribution</h2>
+        <div class="h-80 flex items-center justify-center">
+            <canvas id="statusPieChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Chart 2: Monthly Assigned (Bar Chart) -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">New Jobs (Last 6 Months)</h2>
+        <div class="h-80 flex items-center justify-center">
+            <canvas id="monthlyBarChart"></canvas>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Data for Status Pie Chart
+    const pieLabels = {{ pie_labels|safe }};
+    const pieData = {{ pie_data|safe }};
+    const pieColors = ['#FBBF24', '#3B82F6', '#10B981', '#EF4444']; // Adjust colors as needed
+
+    new Chart(document.getElementById('statusPieChart'), {
+        type: 'pie',
+        data: {
+            labels: pieLabels,
+            datasets: [{
+                data: pieData,
+                backgroundColor: pieColors.slice(0, pieLabels.length),
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+
+    // Data for Monthly Bar Chart
+    const barLabels = {{ bar_labels|safe }};
+    const barData = {{ bar_data|safe }};
+
+    new Chart(document.getElementById('monthlyBarChart'), {
+        type: 'bar',
+        data: {
+            labels: barLabels,
+            datasets: [{
+                label: 'New Jobs Assigned',
+                data: barData,
+                backgroundColor: 'rgba(59, 130, 246, 0.7)', // Blue
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Jobs'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
